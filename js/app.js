@@ -69,6 +69,7 @@ const el = {
   prompter: $('prompter'),
   prompterText: $('prompter-text'),
   countdown: $('countdown'),
+  stopTap: $('stop-tap'),
 
   prompterControls: $('prompter-controls'),
   speedRange: $('speed-range'),
@@ -499,6 +500,9 @@ el.btnRecord.addEventListener('click', () => {
   else startCountdownThenRecord();
 });
 
+// Toque em qualquer lugar da tela para parar a gravação
+el.stopTap.addEventListener('click', () => { if (state.recording) stopRecording(); });
+
 function startCountdownThenRecord() {
   if (!state.stream) { showToast('Câmera não está pronta.'); return; }
   let n = 3;
@@ -622,6 +626,7 @@ async function startRecording() {
 
   el.btnRecord.classList.add('recording');
   el.recStatus.classList.add('active');
+  el.stopTap.hidden = false;
   startRecTimer();
   playPrompter();
 }
@@ -632,6 +637,7 @@ function stopRecording() {
   }
   state.recording = false;
   el.btnRecord.classList.remove('recording');
+  el.stopTap.hidden = true;
   stopRecTimer();
   stopDrawLoop();
   pausePrompter();

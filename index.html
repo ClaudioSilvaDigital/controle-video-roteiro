@@ -93,6 +93,11 @@ Texto da segunda tomada.</pre>
     <!-- Contagem regressiva -->
     <div id="countdown" class="countdown" hidden></div>
 
+    <!-- Toque para parar a gravação (alternativa confiável ao comando de voz) -->
+    <div id="stop-tap" class="stop-tap" hidden>
+      <div class="stop-pill">● Gravando · toque para parar</div>
+    </div>
+
     <!-- Controles do teleprompter (painel) -->
     <div id="prompter-controls" class="prompter-controls">
       <div class="pc-header">
@@ -114,7 +119,7 @@ Texto da segunda tomada.</pre>
       <div class="toggle-row">
         <button class="chip" id="toggle-voice">🎤 Comando de voz</button>
       </div>
-      <div class="pc-hint" id="voice-hint" hidden>Diga: <b>iniciar</b> · <b>pausar</b> · <b>excluir</b></div>
+      <div class="pc-hint" id="voice-hint" hidden>Diga <b>iniciar</b> para gravar e <b>excluir</b> na revisão · toque na tela para parar</div>
     </div>
 
     <!-- Barra inferior: controles principais -->
