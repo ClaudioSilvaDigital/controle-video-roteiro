@@ -30,14 +30,21 @@ const state = {
   recCanvas: null,
   rctx: null,
   drawRAF: null,
+  drawActive: false,
+  rvfcHandle: null,
   canvasStream: null,
+  recAudioStream: null,
+  recTimerId: null,
   lastUrl: null,
   // comando de voz
   recognition: null,
   voiceOn: false,
+  voiceResumeAfterRec: false,
   lastVoiceCmd: '',
   lastVoiceAt: 0,
 };
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---------- Atalhos de DOM ----------
 const $ = (id) => document.getElementById(id);
@@ -220,11 +227,12 @@ async function openCamera() {
   stopStream();
   try {
     const constraints = {
-      audio: true,
+      audio: false, // áudio capturado só ao gravar, deixando o mic livre para o comando de voz
       video: {
         facingMode: { ideal: state.facing },
-        width: { ideal: 1080 },
-        height: { ideal: 1920 },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 },
       },
     };
     state.stream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -473,10 +481,12 @@ el.toggleVoice.addEventListener('click', () => setVoice(!state.voiceOn));
 // =========================================================
 function pickMimeType() {
   const candidates = [
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm',
+    'video/mp4;codecs=h264,aac',
     'video/mp4',
+    'video/webm;codecs=h264,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm;codecs=vp9,opus',
+    'video/webm',
   ];
   for (const c of candidates) {
     if (window.MediaRecorder && MediaRecorder.isTypeSupported(c)) return c;
@@ -511,55 +521,93 @@ function startCountdownThenRecord() {
 function setupRecCanvas() {
   if (!state.recCanvas) {
     state.recCanvas = document.createElement('canvas');
-    state.recCanvas.width = 1080;
-    state.recCanvas.height = 1920;
-    state.rctx = state.recCanvas.getContext('2d');
+    state.recCanvas.width = 720;
+    state.recCanvas.height = 1280;
+    state.rctx = state.recCanvas.getContext('2d', { alpha: false });
   }
 }
 
-function startDrawLoop() {
+function drawFrameOnce() {
   const c = state.recCanvas, ctx = state.rctx, v = el.preview;
-  const draw = () => {
-    const cw = c.width, ch = c.height, vw = v.videoWidth, vh = v.videoHeight;
-    if (vw && vh) {
-      // recorte "cover" centralizado, igual ao que o preview mostra na tela
-      const scale = Math.max(cw / vw, ch / vh);
-      const dw = vw * scale, dh = vh * scale;
-      const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
-      ctx.drawImage(v, dx, dy, dw, dh);
-    }
-    state.drawRAF = requestAnimationFrame(draw);
-  };
-  draw();
+  const cw = c.width, ch = c.height, vw = v.videoWidth, vh = v.videoHeight;
+  if (!vw || !vh) return;
+  // recorte "cover" centralizado, igual ao que o preview mostra na tela
+  const scale = Math.max(cw / vw, ch / vh);
+  const dw = vw * scale, dh = vh * scale;
+  const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+  ctx.drawImage(v, dx, dy, dw, dh);
+}
+
+function startDrawLoop() {
+  const v = el.preview;
+  state.drawActive = true;
+  // requestVideoFrameCallback desenha exatamente cada quadro real da câmera (fluido)
+  if ('requestVideoFrameCallback' in HTMLVideoElement.prototype) {
+    const cb = () => {
+      drawFrameOnce();
+      if (state.drawActive) state.rvfcHandle = v.requestVideoFrameCallback(cb);
+    };
+    state.rvfcHandle = v.requestVideoFrameCallback(cb);
+  } else {
+    const raf = () => {
+      drawFrameOnce();
+      if (state.drawActive) state.drawRAF = requestAnimationFrame(raf);
+    };
+    state.drawRAF = requestAnimationFrame(raf);
+  }
 }
 
 function stopDrawLoop() {
-  if (state.drawRAF) cancelAnimationFrame(state.drawRAF);
-  state.drawRAF = null;
+  state.drawActive = false;
+  if (state.drawRAF) { cancelAnimationFrame(state.drawRAF); state.drawRAF = null; }
+  if (state.rvfcHandle && el.preview.cancelVideoFrameCallback) {
+    try { el.preview.cancelVideoFrameCallback(state.rvfcHandle); } catch (_) {}
+  }
+  state.rvfcHandle = null;
   if (state.canvasStream) {
     state.canvasStream.getVideoTracks().forEach((t) => t.stop());
     state.canvasStream = null;
   }
+  if (state.recAudioStream) {
+    state.recAudioStream.getTracks().forEach((t) => t.stop());
+    state.recAudioStream = null;
+  }
 }
 
-function startRecording() {
-  // Monta um stream 9:16 desenhando o preview num canvas 1080x1920.
-  let recStream;
+async function startRecording() {
+  if (state.recording) return;
   const canUseCanvas = typeof HTMLCanvasElement.prototype.captureStream === 'function'
     && el.preview.videoWidth > 0;
+  let recStream;
+
+  // libera o microfone se o comando de voz estiver ouvindo
+  state.voiceResumeAfterRec = state.voiceOn;
+  if (state.voiceOn) { setVoice(false); await sleep(250); }
+
+  // captura o áudio do microfone só agora (o preview é só vídeo)
+  let audioTrack = null;
+  try {
+    state.recAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioTrack = state.recAudioStream.getAudioTracks()[0];
+  } catch (_) { /* segue sem áudio se o mic for negado */ }
+
   if (canUseCanvas) {
     setupRecCanvas();
     startDrawLoop();
     state.canvasStream = state.recCanvas.captureStream(30);
-    state.stream.getAudioTracks().forEach((t) => state.canvasStream.addTrack(t));
+    if (audioTrack) state.canvasStream.addTrack(audioTrack);
     recStream = state.canvasStream;
   } else {
-    recStream = state.stream; // fallback: grava o stream cru
+    // fallback sem canvas: vídeo do preview + áudio
+    recStream = new MediaStream();
+    state.stream.getVideoTracks().forEach((t) => recStream.addTrack(t));
+    if (audioTrack) recStream.addTrack(audioTrack);
   }
 
   const mime = pickMimeType();
+  const opts = mime ? { mimeType: mime, videoBitsPerSecond: 6000000 } : undefined;
   try {
-    state.recorder = new MediaRecorder(recStream, mime ? { mimeType: mime } : undefined);
+    state.recorder = new MediaRecorder(recStream, opts);
   } catch (err) {
     console.error(err);
     showToast('Este navegador não permite gravar vídeo aqui.');
@@ -587,6 +635,7 @@ function stopRecording() {
   stopRecTimer();
   stopDrawLoop();
   pausePrompter();
+  if (state.voiceResumeAfterRec) { state.voiceResumeAfterRec = false; setVoice(true); }
 }
 
 function onRecordingStop() {
@@ -611,17 +660,16 @@ function startRecTimer() {
   state.recStart = performance.now();
   const t = state.tomadas[state.index];
   el.recTimer.classList.remove('over');
-  const loop = () => {
+  const tick = () => {
     const sec = (performance.now() - state.recStart) / 1000;
     el.recTimer.textContent = fmtTime(sec);
     if (t.duracao && sec >= t.duracao) el.recTimer.classList.add('over');
-    state.recRAF = requestAnimationFrame(loop);
   };
-  loop();
+  tick();
+  state.recTimerId = setInterval(tick, 250);
 }
 function stopRecTimer() {
-  if (state.recRAF) cancelAnimationFrame(state.recRAF);
-  state.recRAF = null;
+  if (state.recTimerId) { clearInterval(state.recTimerId); state.recTimerId = null; }
 }
 
 // =========================================================
