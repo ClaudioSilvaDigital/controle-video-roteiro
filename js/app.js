@@ -32,6 +32,11 @@ const state = {
   drawRAF: null,
   canvasStream: null,
   lastUrl: null,
+  // comando de voz
+  recognition: null,
+  voiceOn: false,
+  lastVoiceCmd: '',
+  lastVoiceAt: 0,
 };
 
 // ---------- Atalhos de DOM ----------
@@ -65,6 +70,9 @@ const el = {
   togglePlay: $('toggle-play'),
   toggleMirror: $('toggle-mirror'),
   toggleGrid: $('toggle-grid'),
+  toggleVoice: $('toggle-voice'),
+  voiceHint: $('voice-hint'),
+  btnMinPanel: $('btn-min-panel'),
 
   btnPrev: $('btn-prev'),
   btnNext: $('btn-next'),
@@ -124,6 +132,16 @@ function parseRoteiro(raw) {
   return tomadas;
 }
 
+// Remove caracteres de marcação (# e *) do texto exibido e arruma espaços
+function cleanText(s) {
+  return String(s || '')
+    .replace(/[#*]/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n[ \t]+/g, '\n')
+    .trim();
+}
+
 function normalizeTomada(t, i) {
   const camRaw = String(t.camera || t.câmera || '').toLowerCase();
   const facing = /front|frontal|user|self/.test(camRaw) ? 'user' : 'environment';
@@ -132,12 +150,12 @@ function normalizeTomada(t, i) {
   const dm = durRaw.match(/(\d+)/);
   if (dm) dur = parseInt(dm[1], 10);
   return {
-    titulo: t.titulo || t.título || `Tomada ${i + 1}`,
+    titulo: cleanText(t.titulo || t.título || '') || `Tomada ${i + 1}`,
     facing,
     cameraLabel: facing === 'user' ? 'frontal' : 'traseira',
-    angulo: t.angulo || t.ângulo || t.angle || '',
+    angulo: cleanText(t.angulo || t.ângulo || t.angle || ''),
     duracao: dur, // segundos (0 = sem alvo)
-    texto: (t.texto || t.text || '').trim(),
+    texto: cleanText(t.texto || t.text || ''),
     status: null, // 'good' | 'redo' | null
   };
 }
@@ -268,6 +286,7 @@ el.btnFlip.addEventListener('click', async () => {
 
 el.btnExit.addEventListener('click', () => {
   if (state.recording) stopRecording();
+  if (state.voiceOn) setVoice(false);
   stopStream();
   stopPrompter();
   releaseWakeLock();
@@ -377,6 +396,77 @@ el.toggleGrid.addEventListener('click', () => {
 el.btnSettings.addEventListener('click', () => {
   el.prompterControls.hidden = !el.prompterControls.hidden;
 });
+
+// Minimizar o painel (o botão "Aa" na barra inferior traz de volta)
+el.btnMinPanel.addEventListener('click', () => {
+  el.prompterControls.hidden = true;
+});
+
+// =========================================================
+// 4b. COMANDO DE VOZ (iniciar / pausar / excluir)
+// =========================================================
+function initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return null;
+  const r = new SR();
+  r.lang = 'pt-BR';
+  r.continuous = true;
+  r.interimResults = true;
+  r.onresult = (e) => {
+    const res = e.results[e.results.length - 1];
+    const txt = res[0].transcript.toLowerCase();
+    handleVoice(txt);
+  };
+  r.onerror = (e) => {
+    if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      showToast('Microfone bloqueado para comando de voz.');
+      setVoice(false);
+    }
+  };
+  r.onend = () => {
+    // reinicia enquanto o usuário mantiver ligado
+    if (state.voiceOn) { try { r.start(); } catch (_) {} }
+  };
+  return r;
+}
+
+function handleVoice(txt) {
+  if (/\binici|\bcome[çc]|\bgravar\b/.test(txt)) triggerVoice('iniciar');
+  else if (/\bpausar\b|\bpausa\b|\bparar\b|\bpara\b/.test(txt)) triggerVoice('pausar');
+  else if (/\bexcluir\b|\bexclui\b|\bapagar\b|\bdeletar\b/.test(txt)) triggerVoice('excluir');
+}
+
+function triggerVoice(cmd) {
+  // evita repetição do mesmo comando por resultados intermediários
+  if (state.lastVoiceCmd === cmd && Date.now() - state.lastVoiceAt < 2500) return;
+  state.lastVoiceCmd = cmd;
+  state.lastVoiceAt = Date.now();
+
+  if (cmd === 'iniciar') {
+    if (!state.recording && el.reviewPanel.hidden) { startRecording(); showToast('Voz: iniciar'); }
+  } else if (cmd === 'pausar') {
+    if (state.recording) { stopRecording(); showToast('Voz: pausar'); }
+  } else if (cmd === 'excluir') {
+    if (!el.reviewPanel.hidden) { el.btnDelete.click(); }
+    else if (state.recording) { stopRecording(); setTimeout(() => el.btnDelete.click(), 300); showToast('Voz: excluir'); }
+  }
+}
+
+function setVoice(on) {
+  state.voiceOn = on;
+  el.toggleVoice.classList.toggle('listening', on);
+  el.voiceHint.hidden = !on;
+  el.toggleVoice.textContent = on ? '🎤 Ouvindo…' : '🎤 Comando de voz';
+  if (on) {
+    if (!state.recognition) state.recognition = initVoice();
+    if (!state.recognition) { showToast('Comando de voz não suportado neste navegador.'); setVoice(false); return; }
+    try { state.recognition.start(); } catch (_) {}
+  } else if (state.recognition) {
+    try { state.recognition.stop(); } catch (_) {}
+  }
+}
+
+el.toggleVoice.addEventListener('click', () => setVoice(!state.voiceOn));
 
 // =========================================================
 // 5. GRAVAÇÃO

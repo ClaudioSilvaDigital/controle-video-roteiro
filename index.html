@@ -95,6 +95,10 @@ Texto da segunda tomada.</pre>
 
     <!-- Controles do teleprompter (painel) -->
     <div id="prompter-controls" class="prompter-controls">
+      <div class="pc-header">
+        <span>Ajustes do teleprompter</span>
+        <button class="pc-min" id="btn-min-panel" title="Minimizar painel">–</button>
+      </div>
       <div class="pc-hint">Arraste o texto para posicionar · toque em Rolar para ensaiar</div>
       <label>Velocidade <span id="speed-val">4</span>
         <input type="range" id="speed-range" min="0" max="20" step="1" value="4" />
@@ -107,6 +111,10 @@ Texto da segunda tomada.</pre>
         <button class="chip" id="toggle-mirror">Espelhar</button>
         <button class="chip" id="toggle-grid">Grade</button>
       </div>
+      <div class="toggle-row">
+        <button class="chip" id="toggle-voice">🎤 Comando de voz</button>
+      </div>
+      <div class="pc-hint" id="voice-hint" hidden>Diga: <b>iniciar</b> · <b>pausar</b> · <b>excluir</b></div>
     </div>
 
     <!-- Barra inferior: controles principais -->

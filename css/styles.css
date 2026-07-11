@@ -185,7 +185,15 @@ body { overflow: hidden; }
 .chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
 .chip-primary { border-color: var(--primary); color: var(--primary); }
 .chip-primary.active { background: var(--good); border-color: var(--good); color: #04270f; }
+.chip.listening { background: var(--rec); border-color: var(--rec); color: #fff; }
 .btn-delete { background: var(--rec); color: #fff; }
+.pc-header { display: flex; align-items: center; justify-content: space-between; }
+.pc-header span { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+.pc-min {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text); font-size: 1.2rem; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
 
 /* Barra inferior */
 .bottom-bar {
