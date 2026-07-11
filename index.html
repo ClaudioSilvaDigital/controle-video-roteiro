@@ -94,15 +94,17 @@ Texto da segunda tomada.</pre>
     <div id="countdown" class="countdown" hidden></div>
 
     <!-- Controles do teleprompter (painel) -->
-    <div id="prompter-controls" class="prompter-controls" hidden>
-      <label>Velocidade
-        <input type="range" id="speed-range" min="0" max="10" step="1" value="4" />
+    <div id="prompter-controls" class="prompter-controls">
+      <div class="pc-hint">Arraste o texto para posicionar · toque em Rolar para ensaiar</div>
+      <label>Velocidade <span id="speed-val">4</span>
+        <input type="range" id="speed-range" min="0" max="20" step="1" value="4" />
       </label>
       <label>Fonte
         <input type="range" id="font-range" min="18" max="64" step="2" value="34" />
       </label>
       <div class="toggle-row">
-        <button class="chip" id="toggle-mirror">Espelhar texto</button>
+        <button class="chip chip-primary" id="toggle-play">▶ Rolar</button>
+        <button class="chip" id="toggle-mirror">Espelhar</button>
         <button class="chip" id="toggle-grid">Grade</button>
       </div>
     </div>
@@ -127,7 +129,10 @@ Texto da segunda tomada.</pre>
       <div class="review-actions">
         <button class="btn btn-good" id="btn-mark-good">Boa ✓</button>
         <button class="btn btn-redo" id="btn-mark-redo">Refazer ↺</button>
+      </div>
+      <div class="review-actions">
         <a class="btn btn-primary" id="btn-download" download>Baixar</a>
+        <button class="btn btn-delete" id="btn-delete">Excluir ✕</button>
       </div>
       <button class="btn btn-ghost btn-block" id="btn-close-review">Fechar</button>
     </div>

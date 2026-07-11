@@ -20,11 +20,18 @@ const state = {
   // teleprompter
   promptRAF: null,
   promptY: 0,           // posição vertical do texto (px, negativa ao subir)
-  promptSpeed: 4,       // 0..10
+  promptSpeed: 4,       // 0..20
+  promptPlaying: false,
   lastTs: 0,
   // timer
   recStart: 0,
   recRAF: null,
+  // gravação em canvas 9:16
+  recCanvas: null,
+  rctx: null,
+  drawRAF: null,
+  canvasStream: null,
+  lastUrl: null,
 };
 
 // ---------- Atalhos de DOM ----------
@@ -53,7 +60,9 @@ const el = {
 
   prompterControls: $('prompter-controls'),
   speedRange: $('speed-range'),
+  speedVal: $('speed-val'),
   fontRange: $('font-range'),
+  togglePlay: $('toggle-play'),
   toggleMirror: $('toggle-mirror'),
   toggleGrid: $('toggle-grid'),
 
@@ -68,6 +77,7 @@ const el = {
   btnMarkGood: $('btn-mark-good'),
   btnMarkRedo: $('btn-mark-redo'),
   btnDownload: $('btn-download'),
+  btnDelete: $('btn-delete'),
   btnCloseReview: $('btn-close-review'),
 
   toast: $('toast'),
@@ -268,12 +278,16 @@ el.btnExit.addEventListener('click', () => {
 // =========================================================
 // 4. TELEPROMPTER
 // =========================================================
+function applyPromptTransform() {
+  el.prompterText.style.transform = `translateY(${-state.promptY}px)`;
+}
+
 function resetPrompter(texto) {
-  stopPrompter();
+  pausePrompter();
   el.prompterText.textContent = texto || '(sem texto para esta tomada)';
   el.prompter.getBoundingClientRect(); // reflow
   state.promptY = el.prompter.clientHeight; // começa logo abaixo do topo visível
-  el.prompterText.style.transform = `translateY(${-state.promptY}px)`;
+  applyPromptTransform();
 }
 
 function startPrompter() {
@@ -283,13 +297,15 @@ function startPrompter() {
     if (!state.lastTs) state.lastTs = ts;
     const dt = (ts - state.lastTs) / 1000;
     state.lastTs = ts;
-    // px por segundo: velocidade 0..10 => 0..140 px/s
+    // px por segundo: velocidade 0..20 => 0..280 px/s
     const pxPerSec = state.promptSpeed * 14;
     state.promptY += pxPerSec * dt;
-    el.prompterText.style.transform = `translateY(${-state.promptY}px)`;
+    applyPromptTransform();
     const maxScroll = el.prompter.clientHeight + el.prompterText.scrollHeight;
     if (state.promptY < maxScroll) {
       state.promptRAF = requestAnimationFrame(step);
+    } else {
+      pausePrompter(); // chegou ao fim
     }
   };
   state.promptRAF = requestAnimationFrame(step);
@@ -300,8 +316,46 @@ function stopPrompter() {
   state.promptRAF = null;
 }
 
+function playPrompter() {
+  startPrompter();
+  state.promptPlaying = true;
+  el.togglePlay.textContent = '❚❚ Pausar';
+  el.togglePlay.classList.add('active');
+}
+
+function pausePrompter() {
+  stopPrompter();
+  state.promptPlaying = false;
+  el.togglePlay.textContent = '▶ Rolar';
+  el.togglePlay.classList.remove('active');
+}
+
+// Arrastar o texto com o dedo para posicionar
+let dragging = false, dragStartY = 0, dragStartPromptY = 0;
+el.prompter.addEventListener('pointerdown', (e) => {
+  dragging = true;
+  dragStartY = e.clientY;
+  dragStartPromptY = state.promptY;
+  if (state.promptPlaying) pausePrompter();
+  try { el.prompter.setPointerCapture(e.pointerId); } catch (_) {}
+});
+el.prompter.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  state.promptY = dragStartPromptY + (dragStartY - e.clientY);
+  applyPromptTransform();
+});
+const endDrag = () => { dragging = false; };
+el.prompter.addEventListener('pointerup', endDrag);
+el.prompter.addEventListener('pointercancel', endDrag);
+
+el.togglePlay.addEventListener('click', () => {
+  if (state.promptPlaying) pausePrompter();
+  else playPrompter();
+});
+
 el.speedRange.addEventListener('input', (e) => {
   state.promptSpeed = parseInt(e.target.value, 10);
+  el.speedVal.textContent = e.target.value;
 });
 el.fontRange.addEventListener('input', (e) => {
   el.prompterText.style.fontSize = `${e.target.value}px`;
@@ -363,13 +417,63 @@ function startCountdownThenRecord() {
   setTimeout(tick, 1000);
 }
 
+// Canvas 9:16 para forçar o arquivo em retrato (o sensor costuma entregar paisagem)
+function setupRecCanvas() {
+  if (!state.recCanvas) {
+    state.recCanvas = document.createElement('canvas');
+    state.recCanvas.width = 1080;
+    state.recCanvas.height = 1920;
+    state.rctx = state.recCanvas.getContext('2d');
+  }
+}
+
+function startDrawLoop() {
+  const c = state.recCanvas, ctx = state.rctx, v = el.preview;
+  const draw = () => {
+    const cw = c.width, ch = c.height, vw = v.videoWidth, vh = v.videoHeight;
+    if (vw && vh) {
+      // recorte "cover" centralizado, igual ao que o preview mostra na tela
+      const scale = Math.max(cw / vw, ch / vh);
+      const dw = vw * scale, dh = vh * scale;
+      const dx = (cw - dw) / 2, dy = (ch - dh) / 2;
+      ctx.drawImage(v, dx, dy, dw, dh);
+    }
+    state.drawRAF = requestAnimationFrame(draw);
+  };
+  draw();
+}
+
+function stopDrawLoop() {
+  if (state.drawRAF) cancelAnimationFrame(state.drawRAF);
+  state.drawRAF = null;
+  if (state.canvasStream) {
+    state.canvasStream.getVideoTracks().forEach((t) => t.stop());
+    state.canvasStream = null;
+  }
+}
+
 function startRecording() {
+  // Monta um stream 9:16 desenhando o preview num canvas 1080x1920.
+  let recStream;
+  const canUseCanvas = typeof HTMLCanvasElement.prototype.captureStream === 'function'
+    && el.preview.videoWidth > 0;
+  if (canUseCanvas) {
+    setupRecCanvas();
+    startDrawLoop();
+    state.canvasStream = state.recCanvas.captureStream(30);
+    state.stream.getAudioTracks().forEach((t) => state.canvasStream.addTrack(t));
+    recStream = state.canvasStream;
+  } else {
+    recStream = state.stream; // fallback: grava o stream cru
+  }
+
   const mime = pickMimeType();
   try {
-    state.recorder = new MediaRecorder(state.stream, mime ? { mimeType: mime } : undefined);
+    state.recorder = new MediaRecorder(recStream, mime ? { mimeType: mime } : undefined);
   } catch (err) {
     console.error(err);
     showToast('Este navegador não permite gravar vídeo aqui.');
+    stopDrawLoop();
     return;
   }
   state.chunks = [];
@@ -381,7 +485,7 @@ function startRecording() {
   el.btnRecord.classList.add('recording');
   el.recStatus.classList.add('active');
   startRecTimer();
-  startPrompter();
+  playPrompter();
 }
 
 function stopRecording() {
@@ -391,14 +495,17 @@ function stopRecording() {
   state.recording = false;
   el.btnRecord.classList.remove('recording');
   stopRecTimer();
-  stopPrompter();
+  stopDrawLoop();
+  pausePrompter();
 }
 
 function onRecordingStop() {
   el.recStatus.classList.remove('active');
+  if (state.lastUrl) { URL.revokeObjectURL(state.lastUrl); state.lastUrl = null; }
   const type = state.recorder.mimeType || 'video/webm';
   const blob = new Blob(state.chunks, { type });
   const url = URL.createObjectURL(blob);
+  state.lastUrl = url;
   const ext = type.includes('mp4') ? 'mp4' : 'webm';
   const t = state.tomadas[state.index];
   const safeName = (t.titulo || `tomada-${state.index + 1}`).replace(/[^\wÀ-ÿ-]+/g, '_');
@@ -437,6 +544,12 @@ function closeReview() {
   el.reviewVideo.load();
 }
 el.btnCloseReview.addEventListener('click', closeReview);
+
+el.btnDelete.addEventListener('click', () => {
+  if (state.lastUrl) { URL.revokeObjectURL(state.lastUrl); state.lastUrl = null; }
+  showToast('Gravação excluída.');
+  closeReview();
+});
 
 el.btnMarkGood.addEventListener('click', () => {
   state.tomadas[state.index].status = 'good';

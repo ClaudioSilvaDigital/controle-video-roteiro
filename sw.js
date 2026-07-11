@@ -1,5 +1,7 @@
-/* Service worker mínimo para PWA (cache do app shell). */
-const CACHE = 'roteiro-camera-v1';
+/* Service worker do PWA.
+   Estratégia "rede primeiro": online sempre pega a versão mais nova;
+   offline usa o que estiver em cache. Assim, atualizações aparecem sem reinstalar. */
+const CACHE = 'roteiro-camera-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -25,6 +27,12 @@ self.addEventListener('fetch', (e) => {
   const { request } = e;
   if (request.method !== 'GET') return;
   e.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request).catch(() => cached))
+    fetch(request)
+      .then((resp) => {
+        const copy = resp.clone();
+        caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
+        return resp;
+      })
+      .catch(() => caches.match(request))
   );
 });
