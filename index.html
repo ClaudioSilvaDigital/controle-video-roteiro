@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b0b0f" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Roteiro Câmera" />
+  <title>Controle de Vídeo por Roteiro</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon.svg" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <!-- ============ TELA 1: SETUP / ROTEIRO ============ -->
+  <section id="setup-screen" class="screen">
+    <header class="setup-header">
+      <h1>Controle de Vídeo por Roteiro</h1>
+      <p class="subtitle">Teleprompter e câmera guiados pelo seu roteiro</p>
+    </header>
+
+    <div class="setup-body">
+      <div class="card">
+        <h2>1. Carregue o roteiro</h2>
+        <p class="hint">Arquivo <code>.txt</code> ou <code>.json</code> no formato de tomadas.</p>
+        <div class="btn-row">
+          <label class="btn btn-primary">
+            <input type="file" id="file-input" accept=".txt,.json,text/plain,application/json" hidden />
+            Escolher arquivo
+          </label>
+          <button class="btn btn-ghost" id="btn-sample">Usar exemplo</button>
+        </div>
+        <details class="format-help">
+          <summary>Ver formato do roteiro</summary>
+<pre># Tomada 1
+camera: traseira
+angulo: plano médio, na altura do peito
+duracao: 20s
+---
+Texto que vai rolar no teleprompter
+enquanto você grava esta tomada.
+
+# Tomada 2
+camera: frontal
+angulo: close, braço estendido
+duracao: 15s
+---
+Texto da segunda tomada.</pre>
+        </details>
+      </div>
+
+      <div class="card" id="tomadas-card" hidden>
+        <h2>2. Tomadas carregadas</h2>
+        <ol id="tomadas-list" class="tomadas-list"></ol>
+      </div>
+    </div>
+
+    <div class="setup-footer">
+      <button class="btn btn-primary btn-lg" id="btn-start" disabled>Iniciar gravação</button>
+    </div>
+  </section>
+
+  <!-- ============ TELA 2: CÂMERA / GRAVAÇÃO ============ -->
+  <section id="camera-screen" class="screen" hidden>
+    <video id="preview" playsinline autoplay muted></video>
+
+    <!-- Grade de enquadramento -->
+    <div id="grid-overlay" class="grid-overlay" hidden>
+      <span></span><span></span><span></span><span></span>
+    </div>
+
+    <!-- Barra superior: infos da tomada -->
+    <div class="top-bar">
+      <button class="icon-btn" id="btn-exit" title="Sair">✕</button>
+      <div class="tomada-info">
+        <span class="tomada-counter" id="tomada-counter">1 / 1</span>
+        <span class="tomada-title" id="tomada-title">Tomada</span>
+        <span class="tomada-meta" id="tomada-meta"></span>
+      </div>
+      <div class="rec-status" id="rec-status">
+        <span class="rec-timer" id="rec-timer">00:00</span>
+      </div>
+    </div>
+
+    <!-- Teleprompter -->
+    <div id="prompter" class="prompter">
+      <div id="prompter-text" class="prompter-text"></div>
+    </div>
+
+    <!-- Contagem regressiva -->
+    <div id="countdown" class="countdown" hidden></div>
+
+    <!-- Controles do teleprompter (painel) -->
+    <div id="prompter-controls" class="prompter-controls" hidden>
+      <label>Velocidade
+        <input type="range" id="speed-range" min="0" max="10" step="1" value="4" />
+      </label>
+      <label>Fonte
+        <input type="range" id="font-range" min="18" max="64" step="2" value="34" />
+      </label>
+      <div class="toggle-row">
+        <button class="chip" id="toggle-mirror">Espelhar texto</button>
+        <button class="chip" id="toggle-grid">Grade</button>
+      </div>
+    </div>
+
+    <!-- Barra inferior: controles principais -->
+    <div class="bottom-bar">
+      <button class="side-btn" id="btn-prev" title="Tomada anterior">‹</button>
+
+      <div class="center-controls">
+        <button class="icon-btn small" id="btn-flip" title="Virar câmera">⟳</button>
+        <button class="rec-btn" id="btn-record" title="Gravar"><span class="rec-dot"></span></button>
+        <button class="icon-btn small" id="btn-settings" title="Ajustes do texto">Aa</button>
+      </div>
+
+      <button class="side-btn" id="btn-next" title="Próxima tomada">›</button>
+    </div>
+
+    <!-- Painel pós-gravação -->
+    <div id="review-panel" class="review-panel" hidden>
+      <p class="review-title">Tomada gravada</p>
+      <video id="review-video" playsinline controls></video>
+      <div class="review-actions">
+        <button class="btn btn-good" id="btn-mark-good">Boa ✓</button>
+        <button class="btn btn-redo" id="btn-mark-redo">Refazer ↺</button>
+        <a class="btn btn-primary" id="btn-download" download>Baixar</a>
+      </div>
+      <button class="btn btn-ghost btn-block" id="btn-close-review">Fechar</button>
+    </div>
+  </section>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

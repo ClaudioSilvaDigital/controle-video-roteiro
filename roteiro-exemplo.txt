@@ -1,0 +1,25 @@
+# Abertura
+camera: frontal
+angulo: close, braço estendido na altura dos olhos
+duracao: 12s
+---
+Oi, pessoal! Hoje eu vou mostrar uma dica rápida
+que vai facilitar a gravação dos seus vídeos.
+Fica até o final que tem um bônus.
+
+# Demonstração
+camera: traseira
+angulo: plano médio, celular na horizontal apoiado
+duracao: 25s
+---
+Repare como o teleprompter mantém o texto rolando
+enquanto você fala olhando direto para a câmera.
+Você controla a velocidade e o tamanho da fonte.
+
+# Encerramento
+camera: frontal
+angulo: close, sorrindo
+duracao: 10s
+---
+Curtiu? Então segue o perfil e compartilha com quem
+também cria conteúdo. Até o próximo vídeo!

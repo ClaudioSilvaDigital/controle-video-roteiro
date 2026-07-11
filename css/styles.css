@@ -1,0 +1,224 @@
+:root {
+  --bg: #0b0b0f;
+  --surface: #16161d;
+  --surface-2: #1f1f29;
+  --text: #f4f4f6;
+  --muted: #9a9aa8;
+  --primary: #4f8cff;
+  --primary-dark: #3a6fd8;
+  --rec: #ff3b30;
+  --good: #34c759;
+  --border: #2a2a35;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overscroll-behavior: none;
+}
+
+body { overflow: hidden; }
+
+.screen { position: fixed; inset: 0; display: flex; flex-direction: column; }
+[hidden] { display: none !important; }
+
+/* ============ TELA SETUP ============ */
+#setup-screen { overflow-y: auto; background: var(--bg); }
+
+.setup-header {
+  padding: calc(var(--safe-top) + 28px) 20px 16px;
+  text-align: center;
+}
+.setup-header h1 { font-size: 1.35rem; font-weight: 700; line-height: 1.2; }
+.subtitle { color: var(--muted); font-size: 0.9rem; margin-top: 6px; }
+
+.setup-body { flex: 1; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+}
+.card h2 { font-size: 1rem; margin-bottom: 8px; }
+.hint { color: var(--muted); font-size: 0.85rem; margin-bottom: 14px; }
+.hint code, pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.hint code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-size: 0.8rem; }
+
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; border: none; border-radius: 12px;
+  padding: 12px 18px; font-size: 0.95rem; font-weight: 600;
+  cursor: pointer; color: var(--text); background: var(--surface-2);
+  text-decoration: none; transition: transform .08s, background .15s;
+  user-select: none;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:disabled { background: var(--surface-2); color: var(--muted); cursor: not-allowed; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); }
+.btn-lg { width: 100%; padding: 16px; font-size: 1.05rem; border-radius: 14px; }
+.btn-block { width: 100%; }
+.btn-good { background: var(--good); color: #04270f; }
+.btn-redo { background: #ffb02e; color: #3a2400; }
+
+.format-help { margin-top: 14px; }
+.format-help summary { color: var(--primary); font-size: 0.85rem; cursor: pointer; }
+.format-help pre {
+  margin-top: 10px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px; font-size: 0.72rem; line-height: 1.5;
+  color: var(--muted); overflow-x: auto; white-space: pre;
+}
+
+.tomadas-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.tomadas-list li {
+  background: var(--surface-2); border-radius: 10px; padding: 10px 12px;
+  font-size: 0.85rem; display: flex; flex-direction: column; gap: 3px;
+}
+.tomadas-list .t-head { display: flex; align-items: center; gap: 8px; }
+.tomadas-list .t-badge {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: .04em;
+  background: var(--primary); color: #fff; padding: 2px 7px; border-radius: 6px;
+}
+.tomadas-list .t-badge.front { background: #a855f7; }
+.tomadas-list .t-title { font-weight: 600; }
+.tomadas-list .t-sub { color: var(--muted); font-size: 0.78rem; }
+
+.setup-footer {
+  padding: 12px 16px calc(var(--safe-bottom) + 16px);
+  background: linear-gradient(transparent, var(--bg) 30%);
+  position: sticky; bottom: 0;
+}
+
+/* ============ TELA CÂMERA ============ */
+#camera-screen { background: #000; }
+
+#preview {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; background: #000;
+}
+#preview.mirror { transform: scaleX(-1); }
+
+.grid-overlay { position: absolute; inset: 0; pointer-events: none; }
+.grid-overlay span { position: absolute; background: rgba(255,255,255,0.25); }
+.grid-overlay span:nth-child(1) { left: 33.33%; top: 0; bottom: 0; width: 1px; }
+.grid-overlay span:nth-child(2) { left: 66.66%; top: 0; bottom: 0; width: 1px; }
+.grid-overlay span:nth-child(3) { top: 33.33%; left: 0; right: 0; height: 1px; }
+.grid-overlay span:nth-child(4) { top: 66.66%; left: 0; right: 0; height: 1px; }
+
+.top-bar {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: calc(var(--safe-top) + 12px) 14px 12px;
+  background: linear-gradient(rgba(0,0,0,0.6), transparent);
+}
+.tomada-info { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; text-align: center; }
+.tomada-counter { font-size: 0.72rem; color: var(--muted); }
+.tomada-title { font-weight: 700; font-size: 0.95rem; }
+.tomada-meta { font-size: 0.75rem; color: #d7d7e0; line-height: 1.25; }
+
+.rec-status { min-width: 62px; display: flex; justify-content: flex-end; }
+.rec-timer {
+  font-variant-numeric: tabular-nums; font-size: 0.85rem;
+  background: rgba(0,0,0,0.45); padding: 4px 8px; border-radius: 8px; opacity: 0;
+  transition: opacity .2s;
+}
+.rec-status.active .rec-timer { opacity: 1; color: #fff; background: var(--rec); }
+.rec-timer.over { animation: blink .8s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .4; } }
+
+.icon-btn {
+  width: 40px; height: 40px; border-radius: 50%; border: none;
+  background: rgba(0,0,0,0.45); color: #fff; font-size: 1.1rem;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.icon-btn.small { width: 48px; height: 48px; font-size: 1rem; font-weight: 700; }
+
+/* Teleprompter */
+.prompter {
+  position: absolute; left: 0; right: 0;
+  top: 22%; height: 46%; z-index: 3;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+}
+.prompter-text {
+  position: absolute; top: 100%; left: 0; right: 0;
+  padding: 0 22px; text-align: center; font-weight: 700;
+  line-height: 1.4; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  will-change: transform;
+}
+.prompter-text.mirror { transform: scaleX(-1); }
+
+.countdown {
+  position: absolute; inset: 0; z-index: 8; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 8rem; font-weight: 800; color: #fff;
+  text-shadow: 0 4px 24px rgba(0,0,0,0.7); background: rgba(0,0,0,0.25);
+}
+
+/* Painel de controles do teleprompter */
+.prompter-controls {
+  position: absolute; left: 12px; right: 12px; bottom: calc(var(--safe-bottom) + 118px);
+  z-index: 6; background: rgba(15,15,20,0.92); border: 1px solid var(--border);
+  border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px;
+  backdrop-filter: blur(8px);
+}
+.prompter-controls label { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: var(--muted); }
+.prompter-controls input[type=range] { flex: 1; accent-color: var(--primary); }
+.toggle-row { display: flex; gap: 10px; }
+.chip {
+  flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--text); font-size: 0.82rem; cursor: pointer;
+}
+.chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+/* Barra inferior */
+.bottom-bar {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px calc(var(--safe-bottom) + 18px);
+  background: linear-gradient(transparent, rgba(0,0,0,0.6));
+}
+.side-btn {
+  width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25);
+  background: rgba(0,0,0,0.35); color: #fff; font-size: 1.6rem; line-height: 1; cursor: pointer;
+}
+.side-btn:disabled { opacity: 0.3; }
+.center-controls { display: flex; align-items: center; gap: 22px; }
+
+.rec-btn {
+  width: 74px; height: 74px; border-radius: 50%;
+  border: 4px solid #fff; background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.rec-dot { width: 56px; height: 56px; border-radius: 50%; background: var(--rec); transition: all .2s; }
+.rec-btn.recording .rec-dot { width: 30px; height: 30px; border-radius: 8px; }
+
+/* Painel de revisão */
+.review-panel {
+  position: absolute; inset: 0; z-index: 10; background: rgba(0,0,0,0.92);
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: calc(var(--safe-top) + 24px) 18px calc(var(--safe-bottom) + 18px);
+}
+.review-title { font-size: 1.05rem; font-weight: 700; }
+#review-video { flex: 1; max-width: 100%; border-radius: 14px; background: #000; min-height: 0; }
+.review-actions { display: flex; gap: 10px; width: 100%; }
+.review-actions .btn { flex: 1; padding: 14px 8px; }
+
+/* Toast */
+.toast {
+  position: fixed; left: 50%; bottom: calc(var(--safe-bottom) + 130px);
+  transform: translateX(-50%); z-index: 30;
+  background: rgba(20,20,26,0.96); border: 1px solid var(--border);
+  color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 0.88rem;
+  max-width: 88%; text-align: center; box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+}
