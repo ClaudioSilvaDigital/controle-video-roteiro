@@ -117,7 +117,8 @@ Texto da segunda tomada.</pre>
         <button class="chip" id="toggle-grid">Grade</button>
       </div>
       <div class="toggle-row">
-        <button class="chip" id="toggle-voice">🎤 Comando de voz</button>
+        <button class="chip" id="btn-edit-text">✎ Editar texto</button>
+        <button class="chip" id="toggle-voice">🎤 Voz</button>
       </div>
       <div class="pc-hint" id="voice-hint" hidden>Diga <b>iniciar</b> para gravar e <b>excluir</b> na revisão · toque na tela para parar</div>
     </div>
@@ -148,6 +149,18 @@ Texto da segunda tomada.</pre>
         <button class="btn btn-delete" id="btn-delete">Excluir ✕</button>
       </div>
       <button class="btn btn-ghost btn-block" id="btn-close-review">Fechar</button>
+    </div>
+
+    <!-- Painel de edição do texto do teleprompter -->
+    <div id="edit-panel" class="edit-panel" hidden>
+      <div class="edit-box">
+        <p class="edit-title" id="edit-title">Editar texto</p>
+        <textarea id="edit-textarea" placeholder="Digite o texto que vai rolar no teleprompter…"></textarea>
+        <div class="edit-actions">
+          <button class="btn btn-ghost" id="btn-edit-cancel">Cancelar</button>
+          <button class="btn btn-primary" id="btn-edit-save">Salvar</button>
+        </div>
+      </div>
     </div>
   </section>
 

@@ -142,13 +142,13 @@ body { overflow: hidden; }
 }
 .icon-btn.small { width: 48px; height: 48px; font-size: 1rem; font-weight: 700; }
 
-/* Teleprompter */
+/* Teleprompter (posicionado no topo, perto da câmera, para disfarçar a leitura) */
 .prompter {
   position: absolute; left: 0; right: 0;
-  top: 22%; height: 46%; z-index: 3;
+  top: 7%; height: 34%; z-index: 3;
   overflow: hidden; cursor: grab; touch-action: none;
-  -webkit-mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
-  mask-image: linear-gradient(transparent, #000 14%, #000 86%, transparent);
+  -webkit-mask-image: linear-gradient(transparent, #000 20%, #000 88%, transparent);
+  mask-image: linear-gradient(transparent, #000 20%, #000 88%, transparent);
 }
 .prompter:active { cursor: grabbing; }
 .prompter-text {
@@ -239,6 +239,27 @@ body { overflow: hidden; }
 #review-video { flex: 1; max-width: 100%; border-radius: 14px; background: #000; min-height: 0; }
 .review-actions { display: flex; gap: 10px; width: 100%; }
 .review-actions .btn { flex: 1; padding: 14px 8px; }
+
+/* Painel de edição do texto */
+.edit-panel {
+  position: absolute; inset: 0; z-index: 12; background: rgba(0,0,0,0.9);
+  display: flex; align-items: center; justify-content: center;
+  padding: calc(var(--safe-top) + 16px) 16px calc(var(--safe-bottom) + 16px);
+}
+.edit-box {
+  width: 100%; max-width: 520px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 16px; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.edit-title { font-size: 1rem; font-weight: 700; }
+#edit-textarea {
+  width: 100%; min-height: 40vh; resize: vertical;
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px; font-size: 1rem; line-height: 1.5;
+  font-family: inherit;
+}
+.edit-actions { display: flex; gap: 10px; }
+.edit-actions .btn { flex: 1; }
 
 /* Toast */
 .toast {

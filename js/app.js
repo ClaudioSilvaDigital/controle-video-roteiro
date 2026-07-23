@@ -81,6 +81,12 @@ const el = {
   toggleVoice: $('toggle-voice'),
   voiceHint: $('voice-hint'),
   btnMinPanel: $('btn-min-panel'),
+  btnEditText: $('btn-edit-text'),
+  editPanel: $('edit-panel'),
+  editTextarea: $('edit-textarea'),
+  editTitle: $('edit-title'),
+  btnEditCancel: $('btn-edit-cancel'),
+  btnEditSave: $('btn-edit-save'),
 
   btnPrev: $('btn-prev'),
   btnNext: $('btn-next'),
@@ -411,6 +417,26 @@ el.btnMinPanel.addEventListener('click', () => {
   el.prompterControls.hidden = true;
 });
 
+// Editar o texto do teleprompter da tomada atual
+el.btnEditText.addEventListener('click', () => {
+  const t = state.tomadas[state.index];
+  if (!t) return;
+  el.editTitle.textContent = `Editar texto · ${t.titulo}`;
+  el.editTextarea.value = t.texto;
+  el.editPanel.hidden = false;
+  el.editTextarea.focus();
+});
+el.btnEditCancel.addEventListener('click', () => { el.editPanel.hidden = true; });
+el.btnEditSave.addEventListener('click', () => {
+  const t = state.tomadas[state.index];
+  if (t) {
+    t.texto = el.editTextarea.value.trim();
+    resetPrompter(t.texto);
+  }
+  el.editPanel.hidden = true;
+  showToast('Texto atualizado.');
+});
+
 // =========================================================
 // 4b. COMANDO DE VOZ (iniciar / pausar / excluir)
 // =========================================================
@@ -465,7 +491,7 @@ function setVoice(on) {
   state.voiceOn = on;
   el.toggleVoice.classList.toggle('listening', on);
   el.voiceHint.hidden = !on;
-  el.toggleVoice.textContent = on ? '🎤 Ouvindo…' : '🎤 Comando de voz';
+  el.toggleVoice.textContent = on ? '🎤 Ouvindo…' : '🎤 Voz';
   if (on) {
     if (!state.recognition) state.recognition = initVoice();
     if (!state.recognition) { showToast('Comando de voz não suportado neste navegador.'); setVoice(false); return; }
