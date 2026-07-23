@@ -1,7 +1,7 @@
 /* Service worker do PWA.
    Estratégia "rede primeiro": online sempre pega a versão mais nova;
    offline usa o que estiver em cache. Assim, atualizações aparecem sem reinstalar. */
-const CACHE = 'roteiro-camera-v7';
+const CACHE = 'roteiro-camera-v8';
 const ASSETS = [
   './',
   './index.html',

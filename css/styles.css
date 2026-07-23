@@ -92,6 +92,12 @@ body { overflow: hidden; }
 .tomadas-list .t-title { font-weight: 600; }
 .tomadas-list .t-sub { color: var(--muted); font-size: 0.78rem; }
 
+.saved-note { font-size: 0.78rem; color: var(--muted); margin-top: 12px; }
+.link-btn {
+  background: none; border: none; color: var(--primary); font-size: 0.78rem;
+  cursor: pointer; text-decoration: underline; padding: 0;
+}
+
 .setup-footer {
   padding: 12px 16px calc(var(--safe-bottom) + 16px);
   background: linear-gradient(transparent, var(--bg) 30%);

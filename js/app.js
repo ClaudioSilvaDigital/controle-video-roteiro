@@ -55,6 +55,8 @@ const el = {
   btnSample: $('btn-sample'),
   tomadasCard: $('tomadas-card'),
   tomadasList: $('tomadas-list'),
+  savedNote: $('saved-note'),
+  btnClearSaved: $('btn-clear-saved'),
   btnStart: $('btn-start'),
 
   preview: $('preview'),
@@ -177,6 +179,41 @@ function normalizeTomada(t, i) {
 // =========================================================
 // 2. TELA DE SETUP
 // =========================================================
+// Persistência do roteiro no próprio celular (armazenamento local)
+const STORE_KEY = 'roteiro_camera_tomadas_v1';
+
+function saveRoteiro() {
+  try {
+    const limpo = state.tomadas.map((t) => ({ ...t, status: null }));
+    localStorage.setItem(STORE_KEY, JSON.stringify(limpo));
+  } catch (_) { /* armazenamento indisponível */ }
+}
+
+function loadSavedRoteiro() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return;
+    const arr = JSON.parse(raw);
+    if (Array.isArray(arr) && arr.length) {
+      state.tomadas = arr;
+      renderTomadasList();
+      el.tomadasCard.hidden = false;
+      el.btnStart.disabled = false;
+      el.savedNote.hidden = false;
+    }
+  } catch (_) { /* ignora salvo corrompido */ }
+}
+
+function clearSavedRoteiro() {
+  try { localStorage.removeItem(STORE_KEY); } catch (_) {}
+  state.tomadas = [];
+  el.tomadasList.innerHTML = '';
+  el.tomadasCard.hidden = true;
+  el.btnStart.disabled = true;
+  el.savedNote.hidden = true;
+  showToast('Roteiro salvo apagado.');
+}
+
 function loadRoteiro(raw) {
   const tomadas = parseRoteiro(raw);
   if (!tomadas.length) {
@@ -187,6 +224,8 @@ function loadRoteiro(raw) {
   renderTomadasList();
   el.tomadasCard.hidden = false;
   el.btnStart.disabled = false;
+  el.savedNote.hidden = true; // upload novo, não é restauração
+  saveRoteiro();
   showToast(`${tomadas.length} tomada(s) carregada(s).`);
 }
 
@@ -432,10 +471,13 @@ el.btnEditSave.addEventListener('click', () => {
   if (t) {
     t.texto = el.editTextarea.value.trim();
     resetPrompter(t.texto);
+    saveRoteiro(); // mantém a edição salva no celular
   }
   el.editPanel.hidden = true;
-  showToast('Texto atualizado.');
+  showToast('Texto salvo.');
 });
+
+el.btnClearSaved.addEventListener('click', clearSavedRoteiro);
 
 // =========================================================
 // 4b. COMANDO DE VOZ (iniciar / pausar / excluir)
@@ -808,3 +850,6 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   });
 }
+
+// Restaura o roteiro salvo no celular (se houver) ao abrir o app
+loadSavedRoteiro();
